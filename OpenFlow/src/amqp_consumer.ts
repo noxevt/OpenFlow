@@ -1,7 +1,6 @@
 import * as winston from "winston";
 import * as amqplib from "amqplib";
 import * as url from "url";
-import { Config } from "./Config";
 
 
 // tslint:disable-next-line: class-name
@@ -23,17 +22,7 @@ export class amqp_consumer {
         this.conn = await amqplib.connect(this.connectionstring);
         this.conn.on("error", () => null);
         this.channel = await this.conn.createChannel();
-        // Assert queue with additional arguments for dead letter exchange (for timed out messages)
-        // These arguments have to match the arguments set in amqp_publisher.ts in the OpenFlowNodeRED src folder
-        this._ok = await this.channel.assertQueue(this.queue, {
-            durable: false,
-            autoDelete: autoDelete,
-            arguments: {
-                'x-dead-letter-exchange': Config.amqp_dlx_prefix + this.queue,
-                'x-dead-letter-routing-key': Config.amqp_dlrk_prefix + this.queue,
-                'x-message-ttl': Config.amqp_message_ttl
-            }
-        });
+        this._ok = await this.channel.assertQueue(this.queue, { durable: false, autoDelete: autoDelete });
         await this.channel.consume(this.queue, (msg) => { this.OnMessage(me, msg); }, { noAck: autoack });
         this._logger.info("Connected to " + new URL(this.connectionstring).hostname);
     }
